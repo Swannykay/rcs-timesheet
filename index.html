@@ -661,17 +661,17 @@ function exportExcel(){
   S.days.forEach(day=>{
     day.rows.forEach(r=>{
       const h=calcH(r.start,r.finish);
-      if(h>0||r.proj||r.code||r.act){
-        allRows.push([day.date,emp,r.proj,r.code,CODE_MAP[r.code]||'',r.act,r.start,r.finish,h||'']);
+      if(h>0||r.proj||r.code){
+        allRows.push([day.date,emp,r.proj,r.code,h||'']);
       }
     });
   });
   if(!allRows.length){showToast('No entries to export');return;}
   const total=grandTotal();
-  const headers=['Date','Employee','Project','Labour Code','Code Description','Activity','Start Time','Finish Time','Total Hours'];
-  const data=[['ROCOCO CONSTRUCTION'],['Employee:',emp],['Month:',month],[],headers,...allRows,[],['','','','','','','','TOTAL HOURS:',total]];
+  const headers=['Date','Name','Project','Labour Code','Hours'];
+  const data=[['ROCOCO CONSTRUCTION'],['Employee:',emp],['Month:',month],[],headers,...allRows,[],['','','','TOTAL HOURS:',total]];
   const ws=XLSX.utils.aoa_to_sheet(data);
-  ws['!cols']=[{wch:12},{wch:18},{wch:24},{wch:13},{wch:30},{wch:26},{wch:10},{wch:10},{wch:13}];
+  ws['!cols']=[{wch:12},{wch:20},{wch:26},{wch:14},{wch:10}];
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,'Timesheet');
   XLSX.writeFile(wb,`RCS_${emp.replace(/\s+/g,'_')}_${month||'timesheet'}.xlsx`);
