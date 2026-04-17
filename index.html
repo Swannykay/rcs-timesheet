@@ -548,6 +548,25 @@ function renderSheet(){
 </div>`;
     }).join('');
 
+  const breakHTML=`<div style="padding:10px 14px;border-top:1px solid var(--steel);background:var(--navy3)">
+  <div class="elabel" style="margin-bottom:8px">Break / Lunch</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:7px">
+    <div>
+      <div class="elabel">Duration</div>
+      <select class="einput sel" onchange="updDay(${day.id},'breakDur',this.value)">
+        <option value="">None</option>
+        <option value="0.5" ${day.breakDur==='0.5'?'selected':''}>30 min</option>
+        <option value="1" ${day.breakDur==='1'?'selected':''}>1 hour</option>
+      </select>
+    </div>
+    <div>
+      <div class="elabel">Reason</div>
+      <input type="text" class="einput" placeholder="e.g. Lunch" value="${day.breakNote||''}"
+        oninput="updDay(${day.id},'breakNote',this.value)"/>
+    </div>
+  </div>
+</div>`;
+
     return`<div class="day-card" id="day_${day.id}">
   <div class="day-header">
     <div class="day-date-wrap">
@@ -567,6 +586,7 @@ function renderSheet(){
       Add task
     </button>
   </div>
+  ${breakHTML}
 </div>`;
   }).join('');
 
@@ -701,13 +721,17 @@ function sendToTina(){
     day.rows.forEach(r=>{
       const h=calcH(r.start,r.finish);
       if(h>0||r.proj||r.code){
-        allRows.push([day.date,emp,r.proj,r.code,h||''].join('\t'));
+        allRows.push([day.date,emp,r.proj,r.code,h||'',''].join('\t'));
       }
     });
+    if(day.breakDur){
+      const bLabel=day.breakDur==='0.5'?'30 min break':'1 hour break';
+      allRows.push([day.date,emp,'—','BREAK','-'+day.breakDur,day.breakNote||'Lunch'].join('\t'));
+    }
   });
   if(!allRows.length){showToast('No entries to send');return;}
   const total=grandTotal();
-  const header='Date\tName\tProject\tLabour Code\tHours';
+  const header='Date\tName\tProject\tLabour Code\tHours\tNotes';
   const body=[
     `ROCOCO CONSTRUCTION — Timesheet`,
     `Employee: ${emp}`,
@@ -716,7 +740,7 @@ function sendToTina(){
     header,
     ...allRows,
     ``,
-    `TOTAL HOURS: ${total}`
+    `TOTAL HOURS (excl. breaks): ${total}`
   ].join('\n');
 
   const emails='admin@rococoltd.com,kayle@rococoltd.com,darren@rococoltd.com';
@@ -734,16 +758,19 @@ function exportExcel(){
     day.rows.forEach(r=>{
       const h=calcH(r.start,r.finish);
       if(h>0||r.proj||r.code){
-        allRows.push([day.date,emp,r.proj,r.code,h||'']);
+        allRows.push([day.date,emp,r.proj,r.code,h||'','']);
       }
     });
+    if(day.breakDur){
+      allRows.push([day.date,emp,'—','BREAK','-'+day.breakDur,day.breakNote||'Lunch']);
+    }
   });
   if(!allRows.length){showToast('No entries to export');return;}
   const total=grandTotal();
-  const headers=['Date','Name','Project','Labour Code','Hours'];
-  const data=[['ROCOCO CONSTRUCTION'],['Employee:',emp],['Month:',month],[],headers,...allRows,[],['','','','TOTAL HOURS:',total]];
+  const headers=['Date','Name','Project','Labour Code','Hours','Break Notes'];
+  const data=[['ROCOCO CONSTRUCTION'],['Employee:',emp],['Month:',month],[],headers,...allRows,[],['','','','TOTAL HOURS (excl. breaks):',total]];
   const ws=XLSX.utils.aoa_to_sheet(data);
-  ws['!cols']=[{wch:12},{wch:20},{wch:26},{wch:14},{wch:10}];
+  ws['!cols']=[{wch:12},{wch:20},{wch:26},{wch:14},{wch:10},{wch:20}];
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,'Timesheet');
   XLSX.writeFile(wb,`RCS_${emp.replace(/\s+/g,'_')}_${month||'timesheet'}.xlsx`);
